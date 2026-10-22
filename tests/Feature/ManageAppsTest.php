@@ -41,7 +41,7 @@ class ManageAppsTest extends TestCase
             ->assertSessionHas('check', ['status' => 'ok', 'message' => 'Healthy responds and reports no issue (Laravel 13.11.1).']);
 
         $this->post('/apps', ['name' => 'Degraded', 'url' => 'https://degraded.test'])
-            ->assertSessionHas('check', ['status' => 'degraded', 'message' => 'Degraded responds but reports: 1 failed job(s).']);
+            ->assertSessionHas('check', ['status' => 'degraded', 'message' => 'Degraded responds but reports: Oldest pending job has waited 9 days: is a queue worker running?, 1 failed job(s).']);
 
         $this->post('/apps', ['name' => 'Locked', 'url' => 'https://locked.test'])
             ->assertSessionHas('check.status', 'unreachable')

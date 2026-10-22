@@ -4,6 +4,11 @@
     {
       "check": "queue",
       "level": "degraded",
+      "message": "Oldest pending job has waited 9 days: is a queue worker running?"
+    },
+    {
+      "check": "queue",
+      "level": "degraded",
       "message": "1 failed job(s)"
     }
   ],
@@ -113,7 +118,8 @@
   "queue": {
     "connection": "database",
     "pending": 17,
-    "failed": 1
+    "failed": 1,
+    "oldest_pending_at": "2026-10-12T10:44:44+00:00"
   },
   "storage": {
     "writable": true,

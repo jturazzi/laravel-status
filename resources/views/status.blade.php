@@ -19,6 +19,14 @@
     $attention = $total - ($summary['ok'] ?? 0);
     $checked = \Illuminate\Support\Carbon::parse($checked_at)->setTimezone(config('app.timezone'));
     $yesNo = fn ($v) => $v === null ? '—' : ($v ? 'Yes' : 'No');
+    $age = function (string $since): string {
+        $minutes = (int) \Illuminate\Support\Carbon::parse($since)->diffInMinutes(now());
+        return match (true) {
+            $minutes >= 2 * 1440 => intdiv($minutes, 1440).' days',
+            $minutes >= 120 => intdiv($minutes, 60).' hours',
+            default => $minutes.' min',
+        };
+    };
 @endphp
 @extends('layouts.app')
 
@@ -194,6 +202,10 @@
                                 <span class="bad">Unavailable</span>
                             @else
                                 {{ $r['queue']['pending'] ?? '—' }} pending
+                                @if (! empty($r['queue']['oldest_pending_at']))
+                                    @php($waiting = \Illuminate\Support\Carbon::parse($r['queue']['oldest_pending_at']))
+                                    <span class="sub behind" title="Oldest pending job available since {{ $waiting->setTimezone(config('app.timezone'))->format('Y-m-d H:i') }}">oldest waits {{ $age($r['queue']['oldest_pending_at']) }}</span>
+                                @endif
                                 <span @class(['sub', 'bad' => ($r['queue']['failed'] ?? 0) > 0])>{{ $r['queue']['failed'] ?? '—' }} failed</span>
                             @endif
                         </div>
@@ -243,7 +255,7 @@
                                 <dt>Database</dt><dd>{{ $r['database']['database'] ?? '—' }}{{ isset($r['database']['latency_ms']) ? ', '.$r['database']['latency_ms'].' ms' : '' }}</dd>
                                 <dt>Migrations</dt><dd>{{ ($r['database']['pending_migrations'] ?? null) === null ? '—' : (($r['database']['pending_migrations'] ?: 'None').' pending') }}</dd>
                                 <dt>Cache</dt><dd>{{ $r['cache']['store'] }}, {{ $r['cache']['ok'] ? 'working' : 'failing' }}</dd>
-                                <dt>Queue</dt><dd>{{ $r['queue']['connection'] }}{{ isset($r['queue']['error']) ? ', '.$r['queue']['error'] : '' }}</dd>
+                                <dt>Queue</dt><dd>{{ $r['queue']['connection'] }}{{ isset($r['queue']['error']) ? ', '.$r['queue']['error'] : '' }}{{ ! empty($r['queue']['oldest_pending_at']) ? ', oldest job waiting since '.\Illuminate\Support\Carbon::parse($r['queue']['oldest_pending_at'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i') : '' }}</dd>
                                 <dt>Storage</dt><dd>{{ $r['storage']['writable'] ? 'Writable' : 'Not writable' }}, {{ $bytes($r['storage']['disk_free_bytes']) }} free of {{ $bytes($r['storage']['disk_total_bytes']) }}</dd>
                                 <dt>Logs</dt><dd>{{ $bytes($r['storage']['logs_size_bytes']) }}</dd>
                             </dl>
