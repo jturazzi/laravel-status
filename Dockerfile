@@ -12,7 +12,11 @@ USER root
 RUN apk add --no-cache bash curl
 
 # Prepare application directories
-RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache /etc/caddy  \
+# storage/ is excluded from the build context: create its layout so a fresh
+# volume is seeded with it (php artisan optimize needs storage/framework/views).
+RUN mkdir -p /var/www/html/storage/app/public /var/www/html/storage/framework/cache/data \
+        /var/www/html/storage/framework/sessions /var/www/html/storage/framework/views \
+        /var/www/html/storage/logs /var/www/html/bootstrap/cache /etc/caddy \
     && chown -R www-data:www-data /var/www/html
 
 # Web server configuration
