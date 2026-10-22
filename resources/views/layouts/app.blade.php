@@ -30,6 +30,7 @@
 
         .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 20px 64px; }
         .topbar { display: flex; align-items: center; gap: 4px; margin-bottom: 28px; }
+        .topbar .brand .version { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 4px; }
         .topbar .brand { margin-right: auto; white-space: nowrap; font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
         .topbar a.tab { padding: 6px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-weight: 600; }
         .topbar a.tab:hover { color: var(--ink); }
@@ -78,7 +79,7 @@
 <body>
 <div class="wrap">
     <nav class="topbar" aria-label="Main">
-        <a class="brand" href="{{ route('status') }}">Laravel Status</a>
+        <a class="brand" href="{{ route('status') }}">Laravel Status <span class="version">{{ config('app.version') }}</span></a>
         <a class="tab" href="{{ route('status') }}" @if (request()->routeIs('status')) aria-current="page" @endif>Dashboard</a>
         <a class="tab" href="{{ route('apps.index') }}" @if (request()->routeIs('apps.*')) aria-current="page" @endif>Applications</a>
     </nav>

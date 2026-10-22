@@ -77,6 +77,7 @@ class StatusPageTest extends TestCase
             ->assertSee(['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'])
             ->assertDontSee('Disabled')
             ->assertSee('2.4.0')
+            ->assertSee(config('app.version'))
             ->assertSee('is a queue worker running?')
             ->assertSee('oldest ')
             ->assertSee('Token rejected (401)')
