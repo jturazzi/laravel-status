@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,7 @@ class StatusCollector
     /**
      * Query every application in parallel.
      *
-     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, summary: array<string, int>}
+     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, behind: array<string, int>, summary: array<string, int>}
      */
     public function collect(bool $fresh = false): array
     {
@@ -37,21 +38,15 @@ class StatusCollector
     }
 
     /**
-     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, summary: array<string, int>}
+     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, behind: array<string, int>, summary: array<string, int>}
      */
     private function fetch(): array
     {
         $apps = $this->registry->enabled()->all();
-        $path = '/'.ltrim(config('status.path'), '/');
 
-        $responses = $apps === [] ? [] : Http::pool(function (Pool $pool) use ($apps, $path) {
+        $responses = $apps === [] ? [] : Http::pool(function (Pool $pool) use ($apps) {
             foreach ($apps as $key => $app) {
-                $pool->as($key)
-                    ->withToken((string) ($app['token'] ?: config('status.token')))
-                    ->acceptJson()
-                    ->connectTimeout(3)
-                    ->timeout(config('status.timeout'))
-                    ->get(rtrim($app['url'], '/').$path);
+                $this->send($pool->as($key), $app);
             }
         });
 
@@ -66,6 +61,11 @@ class StatusCollector
             'laravel' => $this->highest($results, 'runtime.laravel'),
         ];
 
+        $behind = [
+            'php' => $this->countBehind($results, 'runtime.php', $latest['php']),
+            'laravel' => $this->countBehind($results, 'runtime.laravel', $latest['laravel']),
+        ];
+
         $summary = ['ok' => 0, 'degraded' => 0, 'down' => 0, self::UNREACHABLE => 0];
 
         foreach ($results as $result) {
@@ -76,8 +76,39 @@ class StatusCollector
             'checked_at' => now()->toIso8601String(),
             'apps' => $results,
             'latest' => $latest,
+            'behind' => $behind,
             'summary' => $summary,
         ];
+    }
+
+    /**
+     * Query a single application, bypassing the cache.
+     *
+     * @param  array{name: string, url: string, token: ?string, source: string}  $app
+     * @return array<string, mixed>
+     */
+    public function check(array $app): array
+    {
+        try {
+            $response = $this->send(Http::createPendingRequest(), $app);
+        } catch (Throwable $e) {
+            $response = $e;
+        }
+
+        return $this->parse($app, $response);
+    }
+
+    /**
+     * @param  array{url: string, token: ?string}  $app
+     */
+    private function send(PendingRequest $request, array $app): mixed
+    {
+        return $request
+            ->withToken((string) ($app['token'] ?: config('status.token')))
+            ->acceptJson()
+            ->connectTimeout(3)
+            ->timeout(config('status.timeout'))
+            ->get(rtrim($app['url'], '/').'/'.ltrim(config('status.path'), '/'));
     }
 
     /**
@@ -91,7 +122,9 @@ class StatusCollector
         if (! $response instanceof Response) {
             return $base + [
                 'status' => self::UNREACHABLE,
-                'error' => $response instanceof ConnectionException ? 'Connection failed or timed out' : 'Unexpected error',
+                'error' => $response instanceof ConnectionException
+                    ? 'No response within '.config('status.timeout').' s. Check the URL and that the application is running.'
+                    : 'The request failed before reaching the application.',
                 'report' => null,
                 'response_ms' => null,
             ];
@@ -108,9 +141,9 @@ class StatusCollector
             return $base + [
                 'status' => self::UNREACHABLE,
                 'error' => match ($response->status()) {
-                    401 => 'Token rejected (401)',
-                    404 => 'Missing /api/system-info route or token not configured (404)',
-                    default => 'Invalid response (HTTP '.$response->status().')',
+                    401 => 'Token rejected (401). It must match SYSTEM_INFO_TOKEN in the application.',
+                    404 => 'No system-info route (404). Install jturazzi/laravel-system-info and set SYSTEM_INFO_TOKEN.',
+                    default => 'Unexpected response (HTTP '.$response->status().'). Check the URL points to the application root.',
                 },
                 'report' => null,
                 'response_ms' => $responseMs,
@@ -138,5 +171,16 @@ class StatusCollector
             ->values();
 
         return $versions->last();
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $results
+     */
+    private function countBehind(array $results, string $key, ?string $latest): int
+    {
+        return collect($results)
+            ->map(fn (array $r) => data_get($r, 'report.'.$key))
+            ->filter(fn (?string $v) => $v && $latest && version_compare($v, $latest, '<'))
+            ->count();
     }
 }

@@ -11,12 +11,12 @@ use Illuminate\View\View;
 
 class MonitoredAppController extends Controller
 {
-    public function __construct(private StatusCollector $collector) {}
+    public function __construct(private StatusCollector $collector, private AppRegistry $registry) {}
 
-    public function index(AppRegistry $registry): View
+    public function index(): View
     {
         return view('apps.index', [
-            'envApps' => $registry->fromEnvironment(),
+            'envApps' => $this->registry->fromEnvironment(),
             'apps' => MonitoredApp::query()->orderBy('name')->get(),
         ]);
     }
@@ -25,7 +25,7 @@ class MonitoredAppController extends Controller
     {
         $data = $request->validate($this->rules());
 
-        MonitoredApp::create([
+        $app = MonitoredApp::create([
             'name' => $data['name'],
             'url' => rtrim($data['url'], '/'),
             'token' => $data['token'] ?? null,
@@ -34,7 +34,7 @@ class MonitoredAppController extends Controller
 
         $this->collector->forget();
 
-        return redirect()->route('apps.index')->with('success', "\"{$data['name']}\" added.");
+        return $this->backWithCheck(AppRegistry::key($app), "{$app->name} added.");
     }
 
     public function edit(MonitoredApp $app): View
@@ -65,7 +65,7 @@ class MonitoredAppController extends Controller
         $app->save();
         $this->collector->forget();
 
-        return redirect()->route('apps.index')->with('success', "\"{$app->name}\" updated.");
+        return $this->backWithCheck(AppRegistry::key($app), "{$app->name} saved.");
     }
 
     public function destroy(MonitoredApp $app): RedirectResponse
@@ -73,7 +73,33 @@ class MonitoredAppController extends Controller
         $app->delete();
         $this->collector->forget();
 
-        return redirect()->route('apps.index')->with('success', "\"{$app->name}\" removed.");
+        return redirect()->route('apps.index')->with('success', "{$app->name} removed.");
+    }
+
+    public function check(string $key): RedirectResponse
+    {
+        abort_unless($this->registry->find($key), 404);
+
+        return $this->backWithCheck($key);
+    }
+
+    /**
+     * Query the application right away and report the outcome.
+     */
+    private function backWithCheck(string $key, ?string $success = null): RedirectResponse
+    {
+        $app = $this->registry->find($key);
+        $result = $this->collector->check($app);
+
+        $message = match (true) {
+            $result['report'] === null => "{$app['name']} doesn't respond. {$result['error']}",
+            $result['status'] === 'ok' => "{$app['name']} responds and reports no issue (Laravel {$result['report']['runtime']['laravel']}).",
+            default => "{$app['name']} responds but reports: ".implode(', ', array_column($result['report']['issues'], 'message')).'.',
+        };
+
+        return redirect()->route('apps.index')
+            ->with('success', $success)
+            ->with('check', ['status' => $result['status'], 'message' => $message]);
     }
 
     /**

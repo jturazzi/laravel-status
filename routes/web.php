@@ -10,4 +10,5 @@ Route::middleware(BasicAuth::class)->group(function () {
     Route::get('/status.json', [StatusController::class, 'json'])->name('status.json');
 
     Route::resource('apps', MonitoredAppController::class)->except(['create', 'show']);
+    Route::post('/apps/check/{key}', [MonitoredAppController::class, 'check'])->name('apps.check');
 });

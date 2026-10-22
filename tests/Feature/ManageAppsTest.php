@@ -8,6 +8,7 @@ use App\Services\StatusCollector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ManageAppsTest extends TestCase
@@ -25,6 +26,36 @@ class ManageAppsTest extends TestCase
         ]);
 
         $this->withHeaders(['Authorization' => 'Basic '.base64_encode('admin:secret')]);
+
+        Http::fake([
+            'healthy.test/*' => Http::response(json_decode(file_get_contents(base_path('tests/Fixtures/system-info-beta.json')), true)),
+            'degraded.test/*' => Http::response(json_decode(file_get_contents(base_path('tests/Fixtures/system-info-alpha.json')), true)),
+            '*' => Http::response('Unauthorized', 401),
+        ]);
+    }
+
+    public function test_adding_an_app_checks_it_right_away(): void
+    {
+        $this->post('/apps', ['name' => 'Healthy', 'url' => 'https://healthy.test'])
+            ->assertSessionHas('success', 'Healthy added.')
+            ->assertSessionHas('check', ['status' => 'ok', 'message' => 'Healthy responds and reports no issue (Laravel 13.11.1).']);
+
+        $this->post('/apps', ['name' => 'Degraded', 'url' => 'https://degraded.test'])
+            ->assertSessionHas('check', ['status' => 'degraded', 'message' => 'Degraded responds but reports: 1 failed job(s).']);
+
+        $this->post('/apps', ['name' => 'Locked', 'url' => 'https://locked.test'])
+            ->assertSessionHas('check.status', 'unreachable')
+            ->assertSessionHas('check.message', fn (string $m) => str_starts_with($m, "Locked doesn't respond. Token rejected (401)."));
+    }
+
+    public function test_checks_env_and_database_apps_on_demand(): void
+    {
+        $app = MonitoredApp::create(['name' => 'Healthy', 'url' => 'https://healthy.test', 'enabled' => false]);
+
+        $this->post("/apps/check/db-{$app->id}")->assertRedirect('/apps')->assertSessionHas('check.status', 'ok');
+        $this->post('/apps/check/env-from-env')->assertRedirect('/apps')->assertSessionHas('check.status', 'unreachable');
+        $this->post('/apps/check/db-999')->assertNotFound();
+        $this->post('/apps/check/env-unknown')->assertNotFound();
     }
 
     public function test_lists_env_and_database_apps(): void
@@ -33,7 +64,7 @@ class ManageAppsTest extends TestCase
 
         $this->get('/apps')
             ->assertOk()
-            ->assertSeeInOrder(['From Env', '.env', 'From Db', 'Database'])
+            ->assertSeeInOrder(['From Env', 'Environment', 'From Db', 'This page'])
             ->assertDontSee('hidden-token');
     }
 

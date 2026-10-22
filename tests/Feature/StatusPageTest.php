@@ -72,12 +72,13 @@ class StatusPageTest extends TestCase
     {
         $this->withHeaders($this->auth())->get('/')
             ->assertOk()
+            ->assertSee('4 of 5 applications need attention')
             ->assertSeeInOrder(['Down', 'Unreachable'])
             ->assertSee(['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'])
             ->assertDontSee('Disabled')
             ->assertSee('2.4.0')
             ->assertSee('Token rejected (401)')
-            ->assertSee('Connection failed or timed out')
+            ->assertSee('No response within')
             ->assertSee('Database unreachable');
     }
 
@@ -86,7 +87,7 @@ class StatusPageTest extends TestCase
         config(['status.apps' => '']);
         MonitoredApp::query()->delete();
 
-        $this->withHeaders($this->auth())->get('/')->assertOk()->assertSee('No application monitored yet');
+        $this->withHeaders($this->auth())->get('/')->assertOk()->assertSee('No applications yet')->assertSee('Add an application');
     }
 
     public function test_json_summary_and_version_drift(): void
@@ -99,6 +100,8 @@ class StatusPageTest extends TestCase
         $this->assertSame('down', $data['apps']['db-1']['status']);
         $this->assertSame(['ok' => 1, 'degraded' => 1, 'down' => 1, 'unreachable' => 2], $data['summary']);
         $this->assertSame('13.38.0', $data['latest']['laravel']);
+        // Beta and Gamma (down, but still reporting) run 13.11.1.
+        $this->assertSame(2, $data['behind']['laravel']);
     }
 
     public function test_sends_per_app_token_or_shared_token(): void
