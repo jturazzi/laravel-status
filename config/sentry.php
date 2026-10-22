@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\SentryQueueReporting;
+
 /**
  * Sentry Laravel SDK configuration file.
  *
@@ -14,7 +16,7 @@ return [
     'js_dsn' => env('SENTRY_JS_DSN', env('SENTRY_LARAVEL_DSN', env('SENTRY_DSN'))),
 
     // Jobs en queue : seul l'échec définitif est remonté (voir App\Support\SentryQueueReporting)
-    'before_send' => [App\Support\SentryQueueReporting::class, 'beforeSend'],
+    'before_send' => [SentryQueueReporting::class, 'beforeSend'],
 
     // @see https://spotlightjs.com/
     // 'spotlight' => env('SENTRY_SPOTLIGHT', false),
