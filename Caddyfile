@@ -1,0 +1,10 @@
+{
+	frankenphp
+	admin off
+}
+
+:8080 {
+	root * /var/www/html/public
+	encode zstd br gzip
+	php_server
+}

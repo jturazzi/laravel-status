@@ -1,0 +1,11 @@
+vendor/
+node_modules/
+storage/
+.git/
+.gitignore
+.gitattributes
+Dockerfile
+docker-compose.yml
+.dockerignore
+.env
+tests/

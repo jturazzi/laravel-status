@@ -1,0 +1,36 @@
+services:
+  laravel-status:
+    container_name: laravel-status
+    image: ghcr.io/jturazzi/laravel-status:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - storage-data:/var/www/html/storage
+    environment:
+      APP_NAME: "Laravel Status"
+      APP_ENV: production
+      APP_KEY: ""            # php artisan key:generate --show (also encrypts stored tokens)
+      APP_URL: "https://status.example.com"
+      APP_DEBUG: "false"
+      APP_TIMEZONE: "UTC"
+      # SQLite database kept in the storage volume (apps added from the UI, sessions, cache)
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/storage/database.sqlite
+      # Dashboard access (HTTP Basic)
+      STATUS_USERNAME: ""
+      STATUS_PASSWORD: ""
+      # Shared token = the applications' SYSTEM_INFO_TOKEN
+      STATUS_TOKEN: ""
+      # Optional: "Name|https://base-url|optional-token", comma-separated
+      STATUS_APPS: ""
+    command: ["frankenphp", "run"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  storage-data:
