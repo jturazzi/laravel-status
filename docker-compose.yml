@@ -8,11 +8,8 @@ services:
     volumes:
       - storage-data:/var/www/html/storage
     environment:
-      APP_NAME: "Laravel Status"
-      APP_ENV: production
       APP_KEY: ""            # php artisan key:generate --show (also encrypts stored tokens)
       APP_URL: "https://status.example.com"
-      APP_DEBUG: "false"
       APP_TIMEZONE: "UTC"
       # SQLite database kept in the storage volume (apps added from the UI, sessions, cache)
       DB_CONNECTION: sqlite
