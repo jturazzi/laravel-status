@@ -77,6 +77,33 @@
         tbody tr:last-child td { border-bottom: 0; }
         .muted { color: var(--muted); }
         .empty { padding: 28px 16px; color: var(--muted); }
+
+        @media (max-width: 720px) {
+            .wrap { padding: 14px 14px 48px; }
+            .topbar { flex-wrap: wrap; row-gap: 8px; margin-bottom: 20px; }
+            .topbar .brand { flex: 1 1 100%; margin-right: 0; }
+            .topbar a.tab { padding: 8px 12px; }
+            .langs { margin-left: auto; padding-left: 8px; }
+            .langs a { padding: 8px 9px; }
+            .panel { padding: 16px; }
+            input[type=text], input[type=url], input[type=password], input[type=search] { font-size: 16px; padding: 10px 12px; }
+            button, .button { padding: 10px 16px; }
+            form.fields { grid-template-columns: 1fr; }
+            form.fields button[type=submit] { width: 100%; justify-content: center; }
+            .notice { flex-direction: column; gap: 2px; }
+
+            /* Table rows become stacked cards */
+            .table-wrap { background: none; border: 0; border-radius: 0; overflow: visible; }
+            table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+            table.stack thead { display: none; }
+            table.stack tr { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; margin-bottom: 12px; }
+            table.stack td { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 0; overflow-wrap: anywhere; text-align: right; }
+            table.stack td[data-label]::before { content: attr(data-label); flex: none; color: var(--muted); font-size: 13px; font-weight: 600; text-align: left; }
+            table.stack td.card-actions { display: block; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); }
+            table.stack td.card-actions .actions { justify-content: flex-start; flex-wrap: wrap; gap: 8px 20px; }
+            table.stack td.card-actions button.link, table.stack td.card-actions a { padding: 6px 0; }
+            table.stack td.empty { display: block; text-align: left; }
+        }
     </style>
     @stack('head')
 </head>

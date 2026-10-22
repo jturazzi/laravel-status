@@ -99,6 +99,18 @@
             .no-data { grid-column: 1 / -1; }
             .toggle { grid-column: 1 / -1; justify-self: start; }
         }
+        @media (max-width: 560px) {
+            .verdict { font-size: 24px; }
+            .strip li { flex: 1 1 calc(50% - 4px); }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .filters { display: flex; }
+            .filters button { flex: 1 1 auto; padding: 8px 10px; font-size: 13px; }
+            .toolbar input[type=search] { width: 100%; }
+            .row { padding: 12px; gap: 10px 12px; }
+            .toggle { padding: 8px 14px; }
+            .details { padding: 0 14px 16px 12px; grid-template-columns: 1fr; }
+            .details dl { grid-template-columns: minmax(0, auto) minmax(0, 1fr); }
+        }
     </style>
 @endpush
 

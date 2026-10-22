@@ -31,7 +31,7 @@
     </section>
 
     <div class="table-wrap">
-        <table>
+        <table class="stack">
             <thead>
             <tr>
                 <th>{{ __('Name') }}</th>
@@ -45,12 +45,12 @@
             <tbody>
             @foreach ($envApps as $key => $app)
                 <tr>
-                    <td><b>{{ $app['name'] }}</b></td>
-                    <td>{{ $app['url'] }}</td>
-                    <td>{{ $app['token'] ? __('Own token') : __('Shared token') }}</td>
-                    <td class="muted" title="{{ __('Edit STATUS_APPS in the environment to change it') }}">{{ __('Environment') }}</td>
-                    <td>{{ __('Active') }}</td>
-                    <td>
+                    <td data-label="{{ __('Name') }}"><b>{{ $app['name'] }}</b></td>
+                    <td data-label="{{ __('Address') }}">{{ $app['url'] }}</td>
+                    <td data-label="{{ __('Token') }}">{{ $app['token'] ? __('Own token') : __('Shared token') }}</td>
+                    <td data-label="{{ __('Managed in') }}" class="muted" title="{{ __('Edit STATUS_APPS in the environment to change it') }}">{{ __('Environment') }}</td>
+                    <td data-label="{{ __('Monitoring') }}">{{ __('Active') }}</td>
+                    <td class="card-actions">
                         <div class="actions">
                             <form method="POST" action="{{ route('apps.check', $key) }}">@csrf<button type="submit" class="link">{{ __('Check') }}</button></form>
                         </div>
@@ -59,12 +59,12 @@
             @endforeach
             @foreach ($apps as $app)
                 <tr>
-                    <td><b>{{ $app->name }}</b></td>
-                    <td>{{ $app->url }}</td>
-                    <td>{{ $app->token ? __('Own token') : __('Shared token') }}</td>
-                    <td>{{ __('This page') }}</td>
-                    <td @class(['muted' => ! $app->enabled])>{{ $app->enabled ? __('Active') : __('Paused') }}</td>
-                    <td>
+                    <td data-label="{{ __('Name') }}"><b>{{ $app->name }}</b></td>
+                    <td data-label="{{ __('Address') }}">{{ $app->url }}</td>
+                    <td data-label="{{ __('Token') }}">{{ $app->token ? __('Own token') : __('Shared token') }}</td>
+                    <td data-label="{{ __('Managed in') }}">{{ __('This page') }}</td>
+                    <td data-label="{{ __('Monitoring') }}" @class(['muted' => ! $app->enabled])>{{ $app->enabled ? __('Active') : __('Paused') }}</td>
+                    <td class="card-actions">
                         <div class="actions">
                             <form method="POST" action="{{ route('apps.check', 'db-'.$app->id) }}">@csrf<button type="submit" class="link">{{ __('Check') }}</button></form>
                             <a href="{{ route('apps.edit', $app) }}">{{ __('Edit') }}</a>
