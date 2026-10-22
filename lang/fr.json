@@ -19,6 +19,8 @@
     ":name saved.": ":name enregistrée.",
     ":version is the newest; :count application is behind.": ":version est la plus récente ; :count application est en retard.",
     ":version is the newest; :count applications are behind.": ":version est la plus récente ; :count applications sont en retard.",
+    ":version is the latest release; :count application is behind.": ":version est la dernière version publiée ; :count application est en retard.",
+    ":version is the latest release; :count applications are behind.": ":version est la dernière version publiée ; :count applications sont en retard.",
     "Active": "Active",
     "Add an application": "Ajouter une application",
     "Add and check": "Ajouter et vérifier",

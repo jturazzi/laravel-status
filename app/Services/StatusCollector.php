@@ -16,7 +16,7 @@ class StatusCollector
 
     public const CACHE_KEY = 'status.report';
 
-    public function __construct(private AppRegistry $registry) {}
+    public function __construct(private AppRegistry $registry, private UpstreamVersions $upstream) {}
 
     public function forget(): void
     {
@@ -26,7 +26,7 @@ class StatusCollector
     /**
      * Query every application in parallel.
      *
-     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, behind: array<string, int>, summary: array<string, int>}
+     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, latest_source: array<string, string>, behind: array<string, int>, summary: array<string, int>}
      */
     public function collect(bool $fresh = false): array
     {
@@ -38,7 +38,7 @@ class StatusCollector
     }
 
     /**
-     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, behind: array<string, int>, summary: array<string, int>}
+     * @return array{checked_at: string, apps: array<string, array<string, mixed>>, latest: array<string, ?string>, latest_source: array<string, string>, behind: array<string, int>, summary: array<string, int>}
      */
     private function fetch(): array
     {
@@ -56,10 +56,19 @@ class StatusCollector
             $results[$key] = $this->parse($app, $responses[$key] ?? null);
         }
 
-        $latest = [
-            'php' => $this->highest($results, 'runtime.php'),
-            'laravel' => $this->highest($results, 'runtime.laravel'),
-        ];
+        // The latest published release, unless an application already runs a newer one
+        // (or the lookup failed): then the newest version among the applications.
+        $upstream = $this->upstream->latest();
+        $latest = [];
+        $latestSource = [];
+
+        foreach (['php' => 'runtime.php', 'laravel' => 'runtime.laravel'] as $k => $key) {
+            $newest = $this->highest($results, $key);
+            $fromUpstream = $upstream[$k] !== null && ($newest === null || version_compare($upstream[$k], $newest, '>='));
+
+            $latest[$k] = $fromUpstream ? $upstream[$k] : $newest;
+            $latestSource[$k] = $fromUpstream ? 'upstream' : 'apps';
+        }
 
         $behind = [
             'php' => $this->countBehind($results, 'runtime.php', $latest['php']),
@@ -76,6 +85,7 @@ class StatusCollector
             'checked_at' => now()->toIso8601String(),
             'apps' => $results,
             'latest' => $latest,
+            'latest_source' => $latestSource,
             'behind' => $behind,
             'summary' => $summary,
         ];

@@ -29,6 +29,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Latest PHP and Laravel releases
+    |--------------------------------------------------------------------------
+    |
+    | Applications are compared with the latest stable releases published on
+    | php.net and Packagist (cached, 6 h by default). Disabled or unreachable,
+    | the newest version among the monitored applications is used instead.
+    |
+    */
+
+    'upstream' => [
+        'enabled' => (bool) env('STATUS_UPSTREAM_VERSIONS', true),
+        'cache_ttl' => (int) env('STATUS_UPSTREAM_CACHE_TTL', 21600),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Dashboard access (HTTP Basic)
     |--------------------------------------------------------------------------
     */

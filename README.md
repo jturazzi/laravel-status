@@ -7,7 +7,7 @@ For each application it shows:
 
 - overall status (`OK`, `Degraded`, `Down`, `Unreachable`) and reported issues;
 - deployed version, commit and build date;
-- PHP / Laravel versions, flagging applications **behind** the rest of the fleet (↓);
+- PHP / Laravel versions, flagging applications **behind** the latest release on php.net and Packagist (↓);
 - database (engine, version, size, latency), pending migrations;
 - queue (pending / failed jobs), free disk space, log size, response time.
 
@@ -45,6 +45,7 @@ from `APP_LOCALE`. Translations live in `lang/fr.json`; `/status.json` stays in 
 | `STATUS_TOKEN` | Shared token sent to the applications (= their `SYSTEM_INFO_TOKEN`). |
 | `STATUS_APPS` | Applications declared in the environment (see above). |
 | `STATUS_TIMEOUT` / `STATUS_CACHE_TTL` | Per-application timeout (5 s) and cache duration (30 s). |
+| `STATUS_UPSTREAM_VERSIONS` | Compare with the latest PHP and Laravel releases from php.net and Packagist (`true`, cached 6 h, `STATUS_UPSTREAM_CACHE_TTL`). `false`, or unreachable: the newest version among the applications. |
 | `APP_TIMEZONE` | Timezone used to display dates (e.g. `Europe/Paris`). |
 | `APP_KEY` | Also encrypts the stored tokens: keep it stable across deployments. |
 

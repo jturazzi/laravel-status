@@ -143,7 +143,11 @@
                 @if ($behind[$k] === 0)
                     {!! __('Every application runs :version.', ['version' => $strong($k)]) !!}
                 @else
-                    {!! __($behind[$k] === 1 ? ':version is the newest; :count application is behind.' : ':version is the newest; :count applications are behind.', ['version' => $strong($k), 'count' => $behind[$k]]) !!}
+                    @if (($latest_source[$k] ?? 'apps') === 'upstream')
+                        {!! __($behind[$k] === 1 ? ':version is the latest release; :count application is behind.' : ':version is the latest release; :count applications are behind.', ['version' => $strong($k), 'count' => $behind[$k]]) !!}
+                    @else
+                        {!! __($behind[$k] === 1 ? ':version is the newest; :count application is behind.' : ':version is the newest; :count applications are behind.', ['version' => $strong($k), 'count' => $behind[$k]]) !!}
+                    @endif
                 @endif
             @endforeach
             @endif
