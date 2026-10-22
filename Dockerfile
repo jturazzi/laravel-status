@@ -11,6 +11,9 @@ USER root
 
 RUN apk add --no-cache bash curl
 
+# Required by Illuminate\Support\Number
+RUN install-php-extensions intl
+
 # Prepare application directories
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache /etc/caddy  \
     && chown -R www-data:www-data /var/www/html
