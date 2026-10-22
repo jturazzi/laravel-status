@@ -122,9 +122,9 @@ class StatusCollector
         if (! $response instanceof Response) {
             return $base + [
                 'status' => self::UNREACHABLE,
-                'error' => $response instanceof ConnectionException
-                    ? 'No response within '.config('status.timeout').' s. Check the URL and that the application is running.'
-                    : 'The request failed before reaching the application.',
+                ...$this->error($response instanceof ConnectionException
+                    ? ['No response within :seconds s. Check the URL and that the application is running.', ['seconds' => config('status.timeout')]]
+                    : ['The request failed before reaching the application.', []]),
                 'report' => null,
                 'response_ms' => null,
             ];
@@ -140,11 +140,11 @@ class StatusCollector
         if (! is_array($report) || ! isset($report['status'], $report['schema'])) {
             return $base + [
                 'status' => self::UNREACHABLE,
-                'error' => match ($response->status()) {
-                    401 => 'Token rejected (401). It must match SYSTEM_INFO_TOKEN in the application.',
-                    404 => 'No system-info route (404). Install jturazzi/laravel-system-info and set SYSTEM_INFO_TOKEN.',
-                    default => 'Unexpected response (HTTP '.$response->status().'). Check the URL points to the application root.',
-                },
+                ...$this->error(match ($response->status()) {
+                    401 => ['Token rejected (401). It must match SYSTEM_INFO_TOKEN in the application.', []],
+                    404 => ['No system-info route (404). Install jturazzi/laravel-system-info and set SYSTEM_INFO_TOKEN.', []],
+                    default => ['Unexpected response (HTTP :status). Check the URL points to the application root.', ['status' => $response->status()]],
+                }),
                 'report' => null,
                 'response_ms' => $responseMs,
             ];
@@ -153,6 +153,7 @@ class StatusCollector
         return $base + [
             'status' => $report['status'],
             'error' => null,
+            'error_i18n' => null,
             'report' => $report,
             'response_ms' => $responseMs,
         ];
@@ -182,5 +183,22 @@ class StatusCollector
             ->map(fn (array $r) => data_get($r, 'report.'.$key))
             ->filter(fn (?string $v) => $v && $latest && version_compare($v, $latest, '<'))
             ->count();
+    }
+
+    /**
+     * The English message (for /status.json) plus its template and parameters,
+     * translated when displayed: cached results are shared by every language.
+     *
+     * @param  array{0: string, 1: array<string, mixed>}  $message
+     * @return array{error: string, error_i18n: array{key: string, params: array<string, mixed>}}
+     */
+    private function error(array $message): array
+    {
+        [$key, $params] = $message;
+
+        return [
+            'error' => __($key, $params, 'en'),
+            'error_i18n' => ['key' => $key, 'params' => $params],
+        ];
     }
 }

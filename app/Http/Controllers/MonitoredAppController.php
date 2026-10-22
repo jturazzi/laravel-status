@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MonitoredApp;
 use App\Services\AppRegistry;
 use App\Services\StatusCollector;
+use App\Support\IssueText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,7 +35,7 @@ class MonitoredAppController extends Controller
 
         $this->collector->forget();
 
-        return $this->backWithCheck(AppRegistry::key($app), "{$app->name} added.");
+        return $this->backWithCheck(AppRegistry::key($app), __(':name added.', ['name' => $app->name]));
     }
 
     public function edit(MonitoredApp $app): View
@@ -65,7 +66,7 @@ class MonitoredAppController extends Controller
         $app->save();
         $this->collector->forget();
 
-        return $this->backWithCheck(AppRegistry::key($app), "{$app->name} saved.");
+        return $this->backWithCheck(AppRegistry::key($app), __(':name saved.', ['name' => $app->name]));
     }
 
     public function destroy(MonitoredApp $app): RedirectResponse
@@ -73,7 +74,7 @@ class MonitoredAppController extends Controller
         $app->delete();
         $this->collector->forget();
 
-        return redirect()->route('apps.index')->with('success', "{$app->name} removed.");
+        return redirect()->route('apps.index')->with('success', __(':name removed.', ['name' => $app->name]));
     }
 
     public function check(string $key): RedirectResponse
@@ -92,9 +93,12 @@ class MonitoredAppController extends Controller
         $result = $this->collector->check($app);
 
         $message = match (true) {
-            $result['report'] === null => "{$app['name']} doesn't respond. {$result['error']}",
-            $result['status'] === 'ok' => "{$app['name']} responds and reports no issue (Laravel {$result['report']['runtime']['laravel']}).",
-            default => "{$app['name']} responds but reports: ".implode(', ', array_column($result['report']['issues'], 'message')).'.',
+            $result['report'] === null => __(":name doesn't respond. :error", ['name' => $app['name'], 'error' => IssueText::error($result)]),
+            $result['status'] === 'ok' => __(':name responds and reports no issue (Laravel :version).', ['name' => $app['name'], 'version' => $result['report']['runtime']['laravel']]),
+            default => __(':name responds but reports: :issues.', [
+                'name' => $app['name'],
+                'issues' => implode(', ', array_map(IssueText::translate(...), array_column($result['report']['issues'], 'message'))),
+            ]),
         };
 
         return redirect()->route('apps.index')

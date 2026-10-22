@@ -1,40 +1,42 @@
 @php
     $bytes = function (?int $b): string {
         if ($b === null) return '—';
-        $u = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $u = [__('B'), __('KB'), __('MB'), __('GB'), __('TB')];
         $i = $b > 0 ? min((int) floor(log($b, 1024)), 4) : 0;
-        return round($b / 1024 ** $i, 1).' '.$u[$i];
+        return \Illuminate\Support\Number::format(round($b / 1024 ** $i, 1), maxPrecision: 1, locale: app()->getLocale()).' '.$u[$i];
     };
-    $labels = ['ok' => 'Healthy', 'degraded' => 'Degraded', 'down' => 'Down', 'unreachable' => 'Unreachable'];
+    $labels = ['ok' => __('Healthy'), 'degraded' => __('Degraded'), 'down' => __('Down'), 'unreachable' => __('Unreachable')];
     // MySQL stops at 9.x, MariaDB starts at 10.x: the version tells them apart.
     $engine = fn (array $db) => match ($db['driver']) {
         'mysql' => (int) ($db['version'] ?? 0) >= 10 ? 'MariaDB' : 'MySQL',
         'mariadb' => 'MariaDB', 'sqlite' => 'SQLite', 'pgsql' => 'PostgreSQL',
         default => $db['driver'],
     };
+    $percent = fn (?float $v) => $v === null ? '—' : \Illuminate\Support\Number::percentage($v, maxPrecision: 1, locale: app()->getLocale());
     $isBehind = fn (?string $v, ?string $latest) => $v && $latest && version_compare($v, $latest, '<');
     $order = ['down' => 0, 'unreachable' => 1, 'degraded' => 2, 'ok' => 3];
     $sorted = collect($apps)->sortBy(fn ($a) => [$order[$a['status']] ?? 9, $a['name']]);
     $total = count($apps);
     $attention = $total - ($summary['ok'] ?? 0);
     $checked = \Illuminate\Support\Carbon::parse($checked_at)->setTimezone(config('app.timezone'));
-    $yesNo = fn ($v) => $v === null ? '—' : ($v ? 'Yes' : 'No');
+    $yesNo = fn ($v) => $v === null ? '—' : ($v ? __('Yes') : __('No'));
+    $date = fn (string $iso, string $format = 'Y-m-d H:i') => \Illuminate\Support\Carbon::parse($iso)->setTimezone(config('app.timezone'))->format(__($format));
     $age = function (string $since): string {
         $minutes = (int) \Illuminate\Support\Carbon::parse($since)->diffInMinutes(now());
         return match (true) {
-            $minutes >= 2 * 1440 => intdiv($minutes, 1440).' days',
-            $minutes >= 120 => intdiv($minutes, 60).' hours',
-            default => $minutes.' min',
+            $minutes >= 2 * 1440 => \App\Support\IssueText::duration(intdiv($minutes, 1440), 'days'),
+            $minutes >= 120 => \App\Support\IssueText::duration(intdiv($minutes, 60), 'hours'),
+            default => \App\Support\IssueText::duration($minutes, 'minutes'),
         };
     };
 @endphp
 @extends('layouts.app')
 
-@section('title', ($attention > 0 ? "({$attention}) " : '').'Dashboard')
+@section('title', ($attention > 0 ? "({$attention}) " : '').__('Dashboard'))
 
 @push('head')
     <style>
-        .verdict { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 650; max-width: 32ch; }
+        .verdict { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 650; max-width: 42ch; }
         .verdict.is-ok { color: var(--ink); }
         .verdict:not(.is-ok) { color: var(--status); }
         .checked { color: var(--muted); margin: 0 0 22px; }
@@ -104,21 +106,23 @@
 @php
     $worst = $sorted->first()['status'] ?? 'ok';
     $verdict = match (true) {
-        $total === 0 => 'No applications yet',
-        $attention === 0 => $total === 1 ? 'Your application is healthy' : "All {$total} applications are healthy",
-        default => "{$attention} of {$total} ".($total === 1 ? 'application needs' : 'applications need').' attention',
+        $total === 0 => __('No applications yet'),
+        $attention === 0 => $total === 1 ? __('Your application is healthy') : __('All :total applications are healthy', ['total' => $total]),
+        $total === 1 => __('Your application needs attention'),
+        $attention === 1 => __(':attention of :total applications needs attention', ['attention' => $attention, 'total' => $total]),
+        default => __(':attention of :total applications need attention', ['attention' => $attention, 'total' => $total]),
     };
 @endphp
 <div id="dashboard">
     <h1 class="verdict is-{{ $attention === 0 ? 'ok' : $worst }}">{{ $verdict }}</h1>
     <p class="checked">
-        Checked <time datetime="{{ $checked->toIso8601String() }}" title="{{ $checked->format('Y-m-d H:i:s') }}">{{ abs($checked->diffInSeconds()) < 5 ? 'just now' : $checked->diffForHumans() }}</time>,
-        <span data-refresh-note>updates every minute</span>.
-        <a href="?refresh=1">Check now</a>
+        {{ __('Checked') }} <time datetime="{{ $checked->toIso8601String() }}" title="{{ $checked->format(__('Y-m-d H:i:s')) }}">{{ abs($checked->diffInSeconds()) < 5 ? __('just now') : $checked->diffForHumans() }}</time>,
+        <span data-refresh-note>{{ __('updates every minute') }}</span>.
+        <a href="?refresh=1">{{ __('Check now') }}</a>
     </p>
 
     @if ($total > 0)
-        <ol class="strip" aria-label="Applications by status">
+        <ol class="strip" aria-label="{{ __('Applications by status') }}">
             @foreach ($sorted as $key => $app)
                 <li class="is-{{ $app['status'] }}">
                     <a href="#app-{{ $key }}" data-open="{{ $key }}" title="{{ $app['name'] }}: {{ $labels[$app['status']] }}">
@@ -130,30 +134,35 @@
         </ol>
 
         <p class="drift">
+            @php($strong = fn (string $k) => '<strong>'.e(['laravel' => 'Laravel', 'php' => 'PHP'][$k].' '.$latest[$k]).'</strong>')
+            @if ($latest['laravel'] && $latest['php'] && $behind['laravel'] === 0 && $behind['php'] === 0)
+                {!! __('Every application runs :laravel and :php.', ['laravel' => $strong('laravel'), 'php' => $strong('php')]) !!}
+            @else
             @foreach (['laravel' => 'Laravel', 'php' => 'PHP'] as $k => $label)
                 @continue(! $latest[$k])
                 @if ($behind[$k] === 0)
-                    Every application runs <strong>{{ $label }} {{ $latest[$k] }}</strong>.
+                    {!! __('Every application runs :version.', ['version' => $strong($k)]) !!}
                 @else
-                    <strong>{{ $label }} {{ $latest[$k] }}</strong> is the newest; {{ $behind[$k] }} {{ $behind[$k] === 1 ? 'application is' : 'applications are' }} behind.
+                    {!! __($behind[$k] === 1 ? ':version is the newest; :count application is behind.' : ':version is the newest; :count applications are behind.', ['version' => $strong($k), 'count' => $behind[$k]]) !!}
                 @endif
             @endforeach
+            @endif
         </p>
 
         <div class="toolbar">
-            <div class="filters" role="group" aria-label="Show">
-                <button type="button" data-filter="all" aria-pressed="true">All {{ $total }}</button>
-                <button type="button" data-filter="attention" aria-pressed="false">Needs attention {{ $attention }}</button>
-                <button type="button" data-filter="ok" aria-pressed="false">Healthy {{ $summary['ok'] ?? 0 }}</button>
+            <div class="filters" role="group" aria-label="{{ __('Show') }}">
+                <button type="button" data-filter="all" aria-pressed="true">{{ __('All :count', ['count' => $total]) }}</button>
+                <button type="button" data-filter="attention" aria-pressed="false">{{ __('Needs attention :count', ['count' => $attention]) }}</button>
+                <button type="button" data-filter="ok" aria-pressed="false">{{ __('Healthy :count', ['count' => $summary['ok'] ?? 0]) }}</button>
             </div>
-            <input type="search" data-search placeholder="Filter by name or URL" aria-label="Filter by name or URL">
+            <input type="search" data-search placeholder="{{ __('Filter by name or URL') }}" aria-label="{{ __('Filter by name or URL') }}">
         </div>
     @endif
 
     <div class="board">
         @if ($total > 0)
             <div class="row head" aria-hidden="true">
-                <span>Application</span><span>State</span><span>Version</span><span>Runtime</span><span>Database</span><span>Queue</span><span>Disk free</span><span>Response</span><span></span>
+                <span>{{ __('Application') }}</span><span>{{ __('State') }}</span><span>{{ __('Version') }}</span><span>{{ __('Runtime') }}</span><span>{{ __('Database') }}</span><span>{{ __('Queue') }}</span><span>{{ __('Disk free') }}</span><span>{{ __('Response') }}</span><span></span>
             </div>
         @endif
 
@@ -168,101 +177,103 @@
                     <div>
                         <span class="pill">{{ $labels[$app['status']] }}</span>
                         @if ($app['error'])
-                            <ul class="issues"><li>{{ $app['error'] }}</li></ul>
+                            <ul class="issues"><li>{{ \App\Support\IssueText::error($app) }}</li></ul>
                         @elseif (! empty($r['issues']))
-                            <ul class="issues">@foreach ($r['issues'] as $issue)<li>{{ $issue['message'] }}</li>@endforeach</ul>
+                            <ul class="issues">@foreach ($r['issues'] as $issue)<li>{{ \App\Support\IssueText::translate($issue['message']) }}</li>@endforeach</ul>
                         @endif
                     </div>
                     @if ($r)
                         <div>
-                            <span class="k">Version</span>
-                            @if ($r['app']['version']){{ $r['app']['version'] }}@else<span class="muted">No version</span>@endif
+                            <span class="k">{{ __('Version') }}</span>
+                            @if ($r['app']['version']){{ $r['app']['version'] }}@else<span class="muted">{{ __('No version') }}</span>@endif
                             <span class="sub">
-                                @if ($r['app']['commit'])<code title="{{ $r['app']['commit'] }}">{{ \Illuminate\Support\Str::limit($r['app']['commit'], 8, '') }}</code>@else No commit info @endif
+                                @if ($r['app']['commit'])<code title="{{ $r['app']['commit'] }}">{{ \Illuminate\Support\Str::limit($r['app']['commit'], 8, '') }}</code>@else {{ __('No commit info') }} @endif
                             </span>
                         </div>
                         <div>
-                            <span class="k">Runtime</span>
-                            <span @class(['nowrap', 'behind' => $isBehind($r['runtime']['laravel'], $latest['laravel'])]) @if ($isBehind($r['runtime']['laravel'], $latest['laravel'])) title="Behind {{ $latest['laravel'] }}" @endif>Laravel {{ $r['runtime']['laravel'] }}</span>
+                            <span class="k">{{ __('Runtime') }}</span>
+                            <span @class(['nowrap', 'behind' => $isBehind($r['runtime']['laravel'], $latest['laravel'])]) @if ($isBehind($r['runtime']['laravel'], $latest['laravel'])) title="{{ __('Behind :version', ['version' => $latest['laravel']]) }}" @endif>Laravel {{ $r['runtime']['laravel'] }}</span>
                             <span @class(['sub', 'behind' => $isBehind($r['runtime']['php'], $latest['php'])])>PHP {{ $r['runtime']['php'] }}</span>
                         </div>
                         <div>
-                            <span class="k">Database</span>
+                            <span class="k">{{ __('Database') }}</span>
                             @if ($r['database']['ok'])
                                 <span class="nowrap">{{ $engine($r['database']) }} {{ $r['database']['version'] ?? '' }}</span>
-                                <span @class(['sub', 'behind' => ($r['database']['pending_migrations'] ?? 0) > 0])>{{ $bytes($r['database']['size_bytes'] ?? null) }}@if (($r['database']['pending_migrations'] ?? 0) > 0), {{ $r['database']['pending_migrations'] }} pending migration(s)@endif</span>
+                                <span @class(['sub', 'behind' => ($r['database']['pending_migrations'] ?? 0) > 0])>{{ $bytes($r['database']['size_bytes'] ?? null) }}@if (($r['database']['pending_migrations'] ?? 0) > 0), {{ __(':count pending migration(s)', ['count' => $r['database']['pending_migrations']]) }}@endif</span>
                             @else
-                                <span class="bad">Unreachable</span>
+                                <span class="bad">{{ __('Unreachable') }}</span>
                                 <span class="sub">{{ $r['database']['error'] ?? '' }}</span>
                             @endif
                         </div>
                         <div>
-                            <span class="k">Queue</span>
+                            <span class="k">{{ __('Queue') }}</span>
                             @if (isset($r['queue']['error']))
-                                <span class="bad">Unavailable</span>
+                                <span class="bad">{{ __('Unavailable') }}</span>
                             @else
-                                {{ $r['queue']['pending'] ?? '—' }} pending
+                                <span class="nowrap">{{ __(':count pending', ['count' => $r['queue']['pending'] ?? '—']) }}</span>
                                 @if (! empty($r['queue']['oldest_pending_at']))
                                     @php($waiting = \Illuminate\Support\Carbon::parse($r['queue']['oldest_pending_at']))
-                                    <span class="sub behind" title="Oldest pending job available since {{ $waiting->setTimezone(config('app.timezone'))->format('Y-m-d H:i') }}">oldest waits {{ $age($r['queue']['oldest_pending_at']) }}</span>
+                                    <span class="sub behind" title="{{ __('Oldest pending job available since :date', ['date' => $date($r['queue']['oldest_pending_at'])]) }}">{{ __('oldest waits :age', ['age' => $age($r['queue']['oldest_pending_at'])]) }}</span>
                                 @endif
-                                <span @class(['sub', 'bad' => ($r['queue']['failed'] ?? 0) > 0])>{{ $r['queue']['failed'] ?? '—' }} failed</span>
+                                @if (($r['queue']['failed'] ?? null) !== null)
+                                    <span @class(['sub', 'bad' => $r['queue']['failed'] > 0])>{{ __(':count failed', ['count' => $r['queue']['failed']]) }}</span>
+                                @endif
                             @endif
                         </div>
                         <div>
-                            <span class="k">Disk free</span>
-                            {{ $r['storage']['disk_free_percent'] !== null ? $r['storage']['disk_free_percent'].'%' : '—' }}
+                            <span class="k">{{ __('Disk free') }}</span>
+                            {{ $percent($r['storage']['disk_free_percent']) }}
                             <span class="sub">{{ $bytes($r['storage']['disk_free_bytes']) }}</span>
                         </div>
                     @else
-                        <div class="no-data">No report received.</div>
+                        <div class="no-data">{{ __('No report received.') }}</div>
                     @endif
                     <div>
-                        <span class="k">Response</span>
+                        <span class="k">{{ __('Response') }}</span>
                         {{ $app['response_ms'] !== null ? $app['response_ms'].' ms' : '—' }}
                     </div>
                     @if ($r)
-                        <button type="button" class="toggle" aria-expanded="false" aria-controls="details-{{ $key }}">Details</button>
+                        <button type="button" class="toggle" aria-expanded="false" aria-controls="details-{{ $key }}">{{ __('Details') }}</button>
                     @endif
                 </div>
 
                 @if ($r)
                     <section class="details" id="details-{{ $key }}" hidden>
                         <div>
-                            <h3>Application</h3>
+                            <h3>{{ __('Application') }}</h3>
                             <dl>
-                                <dt>Environment</dt><dd @class(['bad' => $r['app']['environment'] === 'production' && $r['app']['debug']])>{{ $r['app']['environment'] }}{{ $r['app']['debug'] ? ', debug on' : '' }}</dd>
+                                <dt>{{ __('Environment') }}</dt><dd @class(['bad' => $r['app']['environment'] === 'production' && $r['app']['debug']])>{{ $r['app']['environment'] }}{{ $r['app']['debug'] ? ', '.__('debug on') : '' }}</dd>
                                 <dt>URL</dt><dd>{{ $r['app']['url'] }}</dd>
                                 <dt>Commit</dt><dd>@if ($r['app']['commit'])<code>{{ $r['app']['commit'] }}</code>@else — @endif</dd>
-                                <dt>Built</dt><dd>{{ $r['app']['build_date'] ? \Illuminate\Support\Carbon::parse($r['app']['build_date'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i') : '—' }}</dd>
-                                <dt>Timezone</dt><dd>{{ $r['app']['timezone'] }}, {{ $r['app']['locale'] }}</dd>
+                                <dt>{{ __('Built') }}</dt><dd>{{ $r['app']['build_date'] ? $date($r['app']['build_date']) : '—' }}</dd>
+                                <dt>{{ __('Timezone') }}</dt><dd>{{ $r['app']['timezone'] }}, {{ $r['app']['locale'] }}</dd>
                                 <dt>Maintenance</dt><dd>{{ $yesNo($r['app']['maintenance']) }}</dd>
                             </dl>
                         </div>
                         <div>
-                            <h3>Runtime</h3>
+                            <h3>{{ __('Runtime') }}</h3>
                             <dl>
-                                <dt>Server</dt><dd>{{ $r['runtime']['server'] ?? $r['runtime']['sapi'] }}</dd>
+                                <dt>{{ __('Server') }}</dt><dd>{{ $r['runtime']['server'] ?? $r['runtime']['sapi'] }}</dd>
                                 <dt>OPcache</dt><dd>{{ $yesNo($r['runtime']['opcache']) }}</dd>
-                                <dt>Memory limit</dt><dd>{{ $r['runtime']['memory_limit'] }}</dd>
-                                <dt>Uploads</dt><dd>{{ $r['runtime']['upload_max_filesize'] }} per file, {{ $r['runtime']['post_max_size'] }} per request</dd>
-                                <dt>Host</dt><dd>{{ $r['runtime']['hostname'] }}, {{ $r['runtime']['os'] }}</dd>
+                                <dt>{{ __('Memory limit') }}</dt><dd>{{ $r['runtime']['memory_limit'] }}</dd>
+                                <dt>{{ __('Uploads') }}</dt><dd>{{ __(':file per file, :request per request', ['file' => $r['runtime']['upload_max_filesize'], 'request' => $r['runtime']['post_max_size']]) }}</dd>
+                                <dt>{{ __('Host') }}</dt><dd>{{ $r['runtime']['hostname'] }}, {{ $r['runtime']['os'] }}</dd>
                             </dl>
                         </div>
                         <div>
-                            <h3>Data</h3>
+                            <h3>{{ __('Data') }}</h3>
                             <dl>
-                                <dt>Database</dt><dd>{{ $r['database']['database'] ?? '—' }}{{ isset($r['database']['latency_ms']) ? ', '.$r['database']['latency_ms'].' ms' : '' }}</dd>
-                                <dt>Migrations</dt><dd>{{ ($r['database']['pending_migrations'] ?? null) === null ? '—' : (($r['database']['pending_migrations'] ?: 'None').' pending') }}</dd>
-                                <dt>Cache</dt><dd>{{ $r['cache']['store'] }}, {{ $r['cache']['ok'] ? 'working' : 'failing' }}</dd>
-                                <dt>Queue</dt><dd>{{ $r['queue']['connection'] }}{{ isset($r['queue']['error']) ? ', '.$r['queue']['error'] : '' }}{{ ! empty($r['queue']['oldest_pending_at']) ? ', oldest job waiting since '.\Illuminate\Support\Carbon::parse($r['queue']['oldest_pending_at'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i') : '' }}</dd>
-                                <dt>Storage</dt><dd>{{ $r['storage']['writable'] ? 'Writable' : 'Not writable' }}, {{ $bytes($r['storage']['disk_free_bytes']) }} free of {{ $bytes($r['storage']['disk_total_bytes']) }}</dd>
-                                <dt>Logs</dt><dd>{{ $bytes($r['storage']['logs_size_bytes']) }}</dd>
+                                <dt>{{ __('Database') }}</dt><dd>{{ $r['database']['database'] ?? '—' }}{{ isset($r['database']['latency_ms']) ? ', '.$r['database']['latency_ms'].' ms' : '' }}</dd>
+                                <dt>{{ __('Migrations') }}</dt><dd>{{ ($r['database']['pending_migrations'] ?? null) === null ? '—' : ($r['database']['pending_migrations'] ? __(':count pending migration(s)', ['count' => $r['database']['pending_migrations']]) : __('None pending')) }}</dd>
+                                <dt>Cache</dt><dd>{{ $r['cache']['store'] }}, {{ $r['cache']['ok'] ? __('working') : __('failing') }}</dd>
+                                <dt>{{ __('Queue') }}</dt><dd>{{ $r['queue']['connection'] }}{{ isset($r['queue']['error']) ? ', '.$r['queue']['error'] : '' }}{{ ! empty($r['queue']['oldest_pending_at']) ? ', '.__('oldest job waiting since :date', ['date' => $date($r['queue']['oldest_pending_at'])]) : '' }}</dd>
+                                <dt>{{ __('Storage') }}</dt><dd>{{ $r['storage']['writable'] ? __('Writable') : __('Not writable') }}, {{ __(':free free of :total', ['free' => $bytes($r['storage']['disk_free_bytes']), 'total' => $bytes($r['storage']['disk_total_bytes'])]) }}</dd>
+                                <dt>{{ __('Logs') }}</dt><dd>{{ $bytes($r['storage']['logs_size_bytes']) }}</dd>
                             </dl>
                         </div>
                         @if (! empty($r['packages']))
                             <div>
-                                <h3>Packages</h3>
+                                <h3>{{ __('Packages') }}</h3>
                                 <dl>
                                     @foreach ($r['packages'] as $package => $version)
                                         <dt>{{ $package }}</dt><dd>{{ $version }}</dd>
@@ -271,10 +282,10 @@
                             </div>
                         @endif
                         <div class="wide">
-                            <h3>PHP extensions ({{ count($r['runtime']['extensions'] ?? []) }})</h3>
+                            <h3>{{ __('PHP extensions (:count)', ['count' => count($r['runtime']['extensions'] ?? [])]) }}</h3>
                             <ul class="chips">@foreach ($r['runtime']['extensions'] ?? [] as $ext)<li>{{ $ext }}</li>@endforeach</ul>
                             <details class="raw">
-                                <summary>Raw report</summary>
+                                <summary>{{ __('Raw report') }}</summary>
                                 <pre>{{ json_encode($r, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
                             </details>
                         </div>
@@ -282,9 +293,9 @@
                 @endif
             </article>
         @empty
-            <p class="empty">Nothing to monitor yet. <a href="{{ route('apps.index') }}">Add an application</a> or list them in <code>STATUS_APPS</code>.</p>
+            <p class="empty">{{ __('Nothing to monitor yet.') }} <a href="{{ route('apps.index') }}">{{ __('Add an application') }}</a> {!! __('or list them in :variable.', ['variable' => '<code>STATUS_APPS</code>']) !!}</p>
         @endforelse
-        <p class="empty" data-no-match hidden>No application matches this filter.</p>
+        <p class="empty" data-no-match hidden>{{ __('No application matches this filter.') }}</p>
     </div>
 </div>
 @endsection
@@ -293,6 +304,7 @@
 <script>
 (() => {
     const state = { filter: 'all', search: '', open: new Set() };
+    const t = {{ \Illuminate\Support\Js::from(['details' => __('Details'), 'hide' => __('Hide'), 'failed' => __('the last update failed, retrying in a minute')]) }};
     const root = () => document.getElementById('dashboard');
 
     function apply() {
@@ -309,7 +321,7 @@
             const details = app.querySelector('.details');
             if (toggle && details) {
                 toggle.setAttribute('aria-expanded', open);
-                toggle.textContent = open ? 'Hide' : 'Details';
+                toggle.textContent = open ? t.hide : t.details;
                 details.hidden = !open;
             }
         });
@@ -353,7 +365,7 @@
             apply();
         } catch {
             const note = root().querySelector('[data-refresh-note]');
-            if (note) note.textContent = 'the last update failed, retrying in a minute';
+            if (note) note.textContent = t.failed;
         }
     }
     setInterval(refresh, 60000);

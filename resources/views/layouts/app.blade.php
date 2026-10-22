@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,6 +35,10 @@
         .topbar a.tab { padding: 6px 12px; border-radius: 6px; color: var(--muted); text-decoration: none; font-weight: 600; }
         .topbar a.tab:hover { color: var(--ink); }
         .topbar a.tab[aria-current="page"] { color: var(--ink); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+        .langs { display: inline-flex; margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); gap: 2px; }
+        .langs a { padding: 4px 7px; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none; }
+        .langs a:hover { color: var(--ink); }
+        .langs a[aria-current="true"] { color: var(--ink); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
 
         /* Status colour carried by one custom property */
         .is-ok { --status: var(--ok); --status-soft: var(--ok-soft); }
@@ -78,10 +82,15 @@
 </head>
 <body>
 <div class="wrap">
-    <nav class="topbar" aria-label="Main">
+    <nav class="topbar" aria-label="{{ __('Main') }}">
         <a class="brand" href="{{ route('status') }}">Laravel Status <span class="version">{{ config('app.version') }}</span></a>
-        <a class="tab" href="{{ route('status') }}" @if (request()->routeIs('status')) aria-current="page" @endif>Dashboard</a>
-        <a class="tab" href="{{ route('apps.index') }}" @if (request()->routeIs('apps.*')) aria-current="page" @endif>Applications</a>
+        <a class="tab" href="{{ route('status') }}" @if (request()->routeIs('status')) aria-current="page" @endif>{{ __('Dashboard') }}</a>
+        <a class="tab" href="{{ route('apps.index') }}" @if (request()->routeIs('apps.*')) aria-current="page" @endif>{{ __('Applications') }}</a>
+        <span class="langs" role="group" aria-label="{{ __('Language') }}">
+            @foreach (\App\Http\Middleware\SetLocale::LOCALES as $locale)
+                <a href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}" lang="{{ $locale }}" hreflang="{{ $locale }}" @if (app()->getLocale() === $locale) aria-current="true" @endif title="{{ ['en' => 'English', 'fr' => 'Français'][$locale] }}">{{ strtoupper($locale) }}</a>
+            @endforeach
+        </span>
     </nav>
 
     @if (session('success'))

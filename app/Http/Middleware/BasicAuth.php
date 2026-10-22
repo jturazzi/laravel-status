@@ -19,7 +19,7 @@ class BasicAuth
             && hash_equals($password, (string) $request->getPassword());
 
         if (! $authorized) {
-            return response('Authentication required', 401, ['WWW-Authenticate' => 'Basic realm="Laravel Status"']);
+            return response(__('Authentication required'), 401, ['WWW-Authenticate' => 'Basic realm="Laravel Status"']);
         }
 
         return $next($request);

@@ -31,6 +31,12 @@ No application is hard-coded. Two sources are merged:
 
 An application without its own token uses the shared `STATUS_TOKEN`.
 
+## Languages
+
+The interface is available in English and French. The language comes from the
+EN / FR switcher (remembered in a cookie), otherwise from the browser, otherwise
+from `APP_LOCALE`. Translations live in `lang/fr.json`; `/status.json` stays in English.
+
 ## Configuration
 
 | Variable | Purpose |
