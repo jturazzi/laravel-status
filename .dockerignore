@@ -1,6 +1,19 @@
 vendor/
 node_modules/
-storage/
+# storage: content excluded (mounted as a volume), repository skeleton kept.
+# Explicit exceptions: a storage/** pattern would make Docker walk all of storage/.
+storage/**
+!storage/app/.gitignore
+!storage/app/private/.gitignore
+!storage/app/public/.gitignore
+!storage/framework/.gitignore
+!storage/framework/cache/.gitignore
+!storage/framework/cache/data/.gitignore
+!storage/framework/cache/locks/.gitignore
+!storage/framework/sessions/.gitignore
+!storage/framework/testing/.gitignore
+!storage/framework/views/.gitignore
+!storage/logs/.gitignore
 .git/
 .gitignore
 .gitattributes
