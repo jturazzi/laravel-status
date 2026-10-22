@@ -11,9 +11,6 @@ services:
       APP_KEY: ""            # php artisan key:generate --show (also encrypts stored tokens)
       APP_URL: "https://status.example.com"
       APP_TIMEZONE: "UTC"
-      # SQLite database kept in the storage volume (apps added from the UI, sessions, cache)
-      DB_CONNECTION: sqlite
-      DB_DATABASE: /var/www/html/storage/database.sqlite
       # Dashboard access (HTTP Basic)
       STATUS_USERNAME: ""
       STATUS_PASSWORD: ""
