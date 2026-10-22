@@ -50,8 +50,8 @@ from `APP_LOCALE`. Translations live in `lang/fr.json`; `/status.json` stays in 
 
 ## Docker
 
-See [`docker-compose.yml`](docker-compose.yml). The SQLite database lives in the
-`storage` volume (`DB_DATABASE=/var/www/html/storage/database.sqlite`) so applications
+See [`docker-compose.yml`](docker-compose.yml). The SQLite database defaults to
+`storage/app/private/database.sqlite`, inside the `storage` volume, so applications
 added from the UI survive redeployments; migrations run automatically on start.
 
 ## Development
