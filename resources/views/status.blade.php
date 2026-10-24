@@ -36,35 +36,39 @@
 
 @push('head')
     <style>
-        .verdict { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 650; max-width: 42ch; }
+        .verdict { display: flex; align-items: center; gap: 16px; font-size: clamp(26px, 3.6vw, 40px); line-height: 1.12; letter-spacing: -.03em; margin: 0 0 8px; font-weight: 650; max-width: 36ch; }
+        .verdict::before { content: ''; flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--status, var(--ok)); box-shadow: 0 0 0 0 var(--status, var(--ok)); animation: beacon 2.8s ease-out infinite; }
+        @keyframes beacon { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status, var(--ok)) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 16px transparent; } }
         .verdict.is-ok { color: var(--ink); }
         .verdict:not(.is-ok) { color: var(--status); }
-        .checked { color: var(--muted); margin: 0 0 22px; }
+        .checked { color: var(--muted); margin: 0 0 32px 34px; }
 
-        .strip { list-style: none; display: flex; gap: 4px; margin: 0 0 14px; padding: 0; }
-        .strip li { flex: 1 1 0; min-width: 0; }
-        .strip a { display: block; padding: 10px 10px 8px; border-top: 6px solid var(--status); background: var(--panel); border-radius: 0 0 6px 6px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .strip a:hover { background: var(--hover); }
-        .strip a small { display: block; color: var(--status); font-weight: 600; }
+        .strip { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin: 0 0 18px; padding: 0; }
+        .strip a { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; padding: 11px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); transition: border-color .15s, transform .15s; }
+        .strip a::before { content: ''; grid-row: 1 / span 2; width: 10px; height: 10px; border-radius: 50%; background: var(--status); box-shadow: 0 0 0 3px var(--status-soft); }
+        .strip a:hover { border-color: var(--status); }
+        .strip a span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .strip a small { color: var(--status); font-size: 12.5px; font-weight: 600; line-height: 1.3; }
         .strip li.is-ok a small { color: var(--muted); font-weight: 400; }
 
-        .drift { margin: 0 0 26px; color: var(--muted); }
+        .drift { margin: 0 0 32px; color: var(--muted); }
         .drift strong { color: var(--ink); font-weight: 600; }
 
         .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .filters { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
-        .filters button { background: transparent; color: var(--muted); border: 0; padding: 5px 12px; border-radius: 6px; font-weight: 600; }
-        .filters button[aria-pressed="true"] { background: var(--bg); color: var(--ink); }
+        .filters { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+        .filters button { background: transparent; color: var(--muted); border: 0; padding: 5px 12px; border-radius: 7px; font-weight: 600; }
+        .filters button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
         .toolbar input[type=search] { width: min(280px, 100%); background: var(--panel); }
 
-        .board { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+        .board { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
         .row { display: grid; grid-template-columns: minmax(150px, 1.4fr) minmax(170px, 1.7fr) minmax(100px, .9fr) minmax(120px, 1fr) minmax(140px, 1.2fr) minmax(80px, .7fr) minmax(80px, .7fr) 64px 72px; gap: 14px; align-items: start; padding: 12px 16px 12px 14px; }
-        .head { color: var(--muted); font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--line); padding-top: 10px; padding-bottom: 10px; padding-left: 18px; }
-        .app { border-bottom: 1px solid var(--line); border-left: 4px solid var(--status); }
+        .head { color: var(--muted); font-size: 13px; font-weight: 600; background: var(--hover); border-bottom: 1px solid var(--line); padding-top: 10px; padding-bottom: 10px; padding-left: 18px; }
+        .app { border-bottom: 1px solid var(--line); border-left: 3px solid var(--status); transition: background .15s; }
+        .app:hover { background: var(--hover); }
         .app:last-of-type { border-bottom: 0; }
         .app:target { background: var(--hover); }
         .k { display: none; }
-        .name { font-weight: 650; color: var(--ink); text-decoration: none; }
+        .name { font-size: 15.5px; letter-spacing: -.01em; font-weight: 650; color: var(--ink); text-decoration: none; }
         .name:hover { text-decoration: underline; }
         .sub { display: block; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
         .issues { margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--status); }
@@ -74,7 +78,8 @@
         .row > :first-child .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .bad { color: var(--down); font-weight: 600; }
         .no-data { grid-column: 3 / span 5; color: var(--muted); }
-        .toggle { justify-self: end; background: transparent; color: var(--accent); border: 1px solid var(--line); padding: 3px 10px; font-size: 13px; }
+        .toggle { justify-self: end; background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; font-size: 13px; }
+        .toggle:hover { border-color: var(--accent); }
         .toggle[aria-expanded="true"] { background: var(--bg); }
 
         .details { padding: 0 20px 20px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 4px 36px; }
@@ -84,14 +89,12 @@
         .details dd { margin: 0; overflow-wrap: anywhere; }
         .details .wide { grid-column: 1 / -1; }
         .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
-        .chips li { font-size: 12px; padding: 1px 7px; border-radius: 4px; background: var(--bg); color: var(--muted); }
+        .chips li { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 2px 8px; border-radius: 6px; background: var(--bg); color: var(--muted); }
         .raw summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 10px; }
-        .raw pre { max-height: 320px; overflow: auto; background: var(--bg); padding: 10px; border-radius: 6px; font-size: 12px; }
+        .raw pre { max-height: 320px; overflow: auto; background: var(--bg); padding: 12px; border-radius: 8px; font-size: 12px; }
         .board .empty a { font-weight: 600; }
 
         @media (max-width: 1080px) {
-            .strip { flex-wrap: wrap; }
-            .strip li { flex: 1 1 140px; }
             .head { display: none; }
             .row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
             .row > :first-child, .row > :nth-child(2) { grid-column: 1 / -1; }
@@ -100,8 +103,10 @@
             .toggle { grid-column: 1 / -1; justify-self: start; }
         }
         @media (max-width: 560px) {
-            .verdict { font-size: 24px; }
-            .strip li { flex: 1 1 calc(50% - 4px); }
+            .verdict { font-size: 24px; gap: 12px; }
+            .checked { margin-left: 30px; }
+            .strip { grid-template-columns: 1fr 1fr; }
+            
             .toolbar { flex-direction: column; align-items: stretch; }
             .filters { display: flex; }
             .filters button { flex: 1 1 auto; padding: 8px 10px; font-size: 13px; }
@@ -138,7 +143,7 @@
             @foreach ($sorted as $key => $app)
                 <li class="is-{{ $app['status'] }}">
                     <a href="#app-{{ $key }}" data-open="{{ $key }}" title="{{ $app['name'] }}: {{ $labels[$app['status']] }}">
-                        {{ $app['name'] }}
+                        <span>{{ $app['name'] }}</span>
                         <small>{{ $labels[$app['status']] }}</small>
                     </a>
                 </li>
