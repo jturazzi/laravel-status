@@ -57,7 +57,6 @@ class StatusPageTest extends TestCase
     public function test_requires_basic_auth(): void
     {
         $this->get('/')->assertUnauthorized()->assertHeader('WWW-Authenticate');
-        $this->get('/apps')->assertUnauthorized();
         $this->withHeaders(['Authorization' => 'Basic '.base64_encode('admin:wrong')])->get('/')->assertUnauthorized();
     }
 
@@ -90,7 +89,7 @@ class StatusPageTest extends TestCase
         config(['status.apps' => '']);
         MonitoredApp::query()->delete();
 
-        $this->withHeaders($this->auth())->get('/')->assertOk()->assertSee('No applications yet')->assertSee('Add an application');
+        $this->withHeaders($this->auth())->get('/')->assertOk()->assertSee('No applications yet')->assertSee('Nothing to monitor yet.');
     }
 
     public function test_json_summary_and_version_drift(): void

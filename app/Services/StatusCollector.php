@@ -16,6 +16,13 @@ class StatusCollector
 
     public const CACHE_KEY = 'status.report';
 
+    /** Tracked versions and where each application reports them. */
+    public const TRACKED = [
+        'php' => 'runtime.php',
+        'laravel' => 'runtime.laravel',
+        'system_info' => 'packages.jturazzi/laravel-system-info',
+    ];
+
     public function __construct(private AppRegistry $registry, private UpstreamVersions $upstream) {}
 
     public function forget(): void
@@ -62,18 +69,19 @@ class StatusCollector
         $latest = [];
         $latestSource = [];
 
-        foreach (['php' => 'runtime.php', 'laravel' => 'runtime.laravel'] as $k => $key) {
+        foreach (self::TRACKED as $k => $key) {
             $newest = $this->highest($results, $key);
-            $fromUpstream = $upstream[$k] !== null && ($newest === null || version_compare($upstream[$k], $newest, '>='));
+            $fromUpstream = ($upstream[$k] ?? null) !== null && ($newest === null || version_compare($upstream[$k], $newest, '>='));
 
             $latest[$k] = $fromUpstream ? $upstream[$k] : $newest;
             $latestSource[$k] = $fromUpstream ? 'upstream' : 'apps';
         }
 
-        $behind = [
-            'php' => $this->countBehind($results, 'runtime.php', $latest['php']),
-            'laravel' => $this->countBehind($results, 'runtime.laravel', $latest['laravel']),
-        ];
+        $behind = [];
+
+        foreach (self::TRACKED as $k => $key) {
+            $behind[$k] = $this->countBehind($results, $key, $latest[$k]);
+        }
 
         $summary = ['ok' => 0, 'degraded' => 0, 'down' => 0, self::UNREACHABLE => 0];
 
@@ -170,12 +178,22 @@ class StatusCollector
     }
 
     /**
+     * @param  array<string, mixed>  $result
+     */
+    private function version(array $result, string $key): ?string
+    {
+        $version = data_get($result, 'report.'.$key);
+
+        return is_string($version) ? ltrim($version, 'v') : null;
+    }
+
+    /**
      * @param  array<string, array<string, mixed>>  $results
      */
     private function highest(array $results, string $key): ?string
     {
         $versions = collect($results)
-            ->map(fn (array $r) => data_get($r, 'report.'.$key))
+            ->map(fn (array $r) => $this->version($r, $key))
             ->filter()
             ->unique()
             ->sort(fn (string $a, string $b) => version_compare($a, $b))
@@ -190,7 +208,7 @@ class StatusCollector
     private function countBehind(array $results, string $key, ?string $latest): int
     {
         return collect($results)
-            ->map(fn (array $r) => data_get($r, 'report.'.$key))
+            ->map(fn (array $r) => $this->version($r, $key))
             ->filter(fn (?string $v) => $v && $latest && version_compare($v, $latest, '<'))
             ->count();
     }

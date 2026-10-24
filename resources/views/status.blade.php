@@ -146,12 +146,12 @@
         </ol>
 
         <p class="drift">
-            @php($strong = fn (string $k) => '<strong>'.e(['laravel' => 'Laravel', 'php' => 'PHP'][$k].' '.$latest[$k]).'</strong>')
-            @if ($latest['laravel'] && $latest['php'] && $behind['laravel'] === 0 && $behind['php'] === 0)
+            @php($strong = fn (string $k) => '<strong>'.e(['laravel' => 'Laravel', 'php' => 'PHP', 'system_info' => 'laravel-system-info'][$k].' '.$latest[$k]).'</strong>')
+            @if ($latest['laravel'] && $latest['php'] && $behind['laravel'] === 0 && $behind['php'] === 0 && $behind['system_info'] === 0)
                 {!! __('Every application runs :laravel and :php.', ['laravel' => $strong('laravel'), 'php' => $strong('php')]) !!}
             @else
-            @foreach (['laravel' => 'Laravel', 'php' => 'PHP'] as $k => $label)
-                @continue(! $latest[$k])
+            @foreach (['laravel' => 'Laravel', 'php' => 'PHP', 'system_info' => 'laravel-system-info'] as $k => $label)
+                @continue(! $latest[$k] || ($k === 'system_info' && $behind[$k] === 0))
                 @if ($behind[$k] === 0)
                     {!! __('Every application runs :version.', ['version' => $strong($k)]) !!}
                 @else
@@ -292,7 +292,8 @@
                                 <h3>{{ __('Packages') }}</h3>
                                 <dl>
                                     @foreach ($r['packages'] as $package => $version)
-                                        <dt>{{ $package }}</dt><dd>{{ $version }}</dd>
+                                        @php($pkgBehind = $package === 'jturazzi/laravel-system-info' && $isBehind(ltrim($version, 'v'), $latest['system_info']))
+                                        <dt>{{ $package }}</dt><dd @class(['behind' => $pkgBehind]) @if ($pkgBehind) title="{{ __('Behind :version', ['version' => $latest['system_info']]) }}" @endif>{{ $version }}</dd>
                                     @endforeach
                                 </dl>
                             </div>
@@ -309,7 +310,7 @@
                 @endif
             </article>
         @empty
-            <p class="empty">{{ __('Nothing to monitor yet.') }} <a href="{{ route('apps.index') }}">{{ __('Add an application') }}</a> {!! __('or list them in :variable.', ['variable' => '<code>STATUS_APPS</code>']) !!}</p>
+            <p class="empty">{!! __('Nothing to monitor yet. List the applications in :variable.', ['variable' => '<code>STATUS_APPS</code>']) !!}</p>
         @endforelse
         <p class="empty" data-no-match hidden>{{ __('No application matches this filter.') }}</p>
     </div>

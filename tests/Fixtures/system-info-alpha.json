@@ -99,7 +99,8 @@
   "packages": {
     "laravel/framework": "v13.38.0",
     "inertiajs/inertia-laravel": "v3.5.1",
-    "laravel/socialite": "v5.31.0"
+    "laravel/socialite": "v5.31.0",
+    "jturazzi/laravel-system-info": "v1.0.3"
   },
   "database": {
     "connection": "mysql",

@@ -12,6 +12,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "jturazzi/laravel-system-info": "^1.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "sentry/sentry-laravel": "^4.29"

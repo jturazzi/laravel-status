@@ -55,27 +55,14 @@ class LocaleTest extends TestCase
 
     public function test_browser_language_is_used_without_a_choice(): void
     {
-        $this->withHeader('Accept-Language', 'fr-FR,fr;q=0.9,en;q=0.5')->get('/apps')
+        $this->withHeader('Accept-Language', 'fr-FR,fr;q=0.9,en;q=0.5')->get('/')
             ->assertOk()
-            ->assertSee('Ajouter une application')
-            ->assertSee('Géré dans');
+            ->assertSee('Tableau de bord');
     }
 
     public function test_unsupported_language_falls_back(): void
     {
         $this->get('/?lang=de')->assertOk()->assertSee('Dashboard')->assertCookieMissing(SetLocale::COOKIE);
-    }
-
-    public function test_check_message_and_validation_in_french(): void
-    {
-        $this->withCookie(SetLocale::COOKIE, 'fr')
-            ->post('/apps', ['name' => 'Locked', 'url' => 'https://locked.test'])
-            ->assertSessionHas('success', 'Locked ajoutée.')
-            ->assertSessionHas('check.message', fn (string $m) => str_starts_with($m, 'Locked ne répond pas. Jeton refusé (401).'));
-
-        $this->withCookie(SetLocale::COOKIE, 'fr')
-            ->post('/apps', ['name' => '', 'url' => 'ftp://x'])
-            ->assertSessionHasErrors(['name' => 'Le champ nom est obligatoire.', 'url' => 'Le champ adresse doit être une adresse valide.']);
     }
 
     public function test_json_stays_in_english(): void

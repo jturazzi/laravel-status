@@ -112,7 +112,6 @@
     <nav class="topbar" aria-label="{{ __('Main') }}">
         <a class="brand" href="{{ route('status') }}">Laravel Status <span class="version">{{ config('app.version') }}</span></a>
         <a class="tab" href="{{ route('status') }}" @if (request()->routeIs('status')) aria-current="page" @endif>{{ __('Dashboard') }}</a>
-        <a class="tab" href="{{ route('apps.index') }}" @if (request()->routeIs('apps.*')) aria-current="page" @endif>{{ __('Applications') }}</a>
         <span class="langs" role="group" aria-label="{{ __('Language') }}">
             @foreach (\App\Http\Middleware\SetLocale::LOCALES as $locale)
                 <a href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}" lang="{{ $locale }}" hreflang="{{ $locale }}" @if (app()->getLocale() === $locale) aria-current="true" @endif title="{{ ['en' => 'English', 'fr' => 'Français'][$locale] }}">{{ strtoupper($locale) }}</a>

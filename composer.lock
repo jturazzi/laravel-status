@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "132b3cb8f0d5d0d18b143d4a37be23bf",
+    "content-hash": "bc81273664183df79b12abfdf02b0bf1",
     "packages": [
         {
             "name": "brick/math",
@@ -1118,6 +1118,62 @@
                 "source": "https://github.com/Jean85/pretty-package-versions/tree/2.1.1"
             },
             "time": "2025-03-19T14:43:43+00:00"
+        },
+        {
+            "name": "jturazzi/laravel-system-info",
+            "version": "1.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jturazzi/laravel-system-info.git",
+                "reference": "4b7d1917a90da7bdecc838d3a94adbcc548c321b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jturazzi/laravel-system-info/zipball/4b7d1917a90da7bdecc838d3a94adbcc548c321b",
+                "reference": "4b7d1917a90da7bdecc838d3a94adbcc548c321b",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^12.0|^13.0",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Jturazzi\\SystemInfo\\SystemInfoServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Jturazzi\\SystemInfo\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jérémy Turazzi",
+                    "homepage": "https://github.com/jturazzi"
+                }
+            ],
+            "description": "Exposes a token-protected /api/system-info endpoint (versions, database, queue, disk, health) for Laravel applications.",
+            "homepage": "https://github.com/jturazzi/laravel-system-info",
+            "keywords": [
+                "health-check",
+                "laravel",
+                "monitoring",
+                "status",
+                "system-info"
+            ],
+            "support": {
+                "issues": "https://github.com/jturazzi/laravel-system-info/issues",
+                "source": "https://github.com/jturazzi/laravel-system-info/tree/1.0.3"
+            },
+            "time": "2026-10-22T02:01:52+00:00"
         },
         {
             "name": "laravel/framework",

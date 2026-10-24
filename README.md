@@ -17,17 +17,13 @@ external monitoring tool.
 
 ## Declaring applications
 
-No application is hard-coded. Two sources are merged:
+No application is hard-coded: they are listed in `STATUS_APPS` (there is no management page).
 
-1. **From the UI** — the `/apps` page adds, edits, disables and removes applications.
-   They are stored in the SQLite database; per-app tokens are encrypted with `APP_KEY`.
-2. **From the environment** — `STATUS_APPS`, read-only in the UI:
+```dotenv
+STATUS_APPS="Billing|https://billing.example.com,CRM|https://crm.example.com|crm-token"
+```
 
-   ```dotenv
-   STATUS_APPS="Billing|https://billing.example.com,CRM|https://crm.example.com|crm-token"
-   ```
-
-   Each entry is `Name|base URL|optional token`. Invalid entries are ignored.
+Each entry is `Name|base URL|optional token`. Invalid entries are ignored.
 
 An application without its own token uses the shared `STATUS_TOKEN`.
 
@@ -44,6 +40,7 @@ from `APP_LOCALE`. Translations live in `lang/fr.json`; `/status.json` stays in 
 | `STATUS_USERNAME` / `STATUS_PASSWORD` | HTTP Basic access to the dashboard. Empty = everyone is rejected. |
 | `STATUS_TOKEN` | Shared token sent to the applications (= their `SYSTEM_INFO_TOKEN`). |
 | `STATUS_APPS` | Applications declared in the environment (see above). |
+| `SYSTEM_INFO_TOKEN` | Token of this dashboard's own `GET /api/system-info` (empty = 404). Add the dashboard to the monitored applications to follow its versions like the others. |
 | `STATUS_TIMEOUT` / `STATUS_CACHE_TTL` | Per-application timeout (5 s) and cache duration (30 s). |
 | `STATUS_UPSTREAM_VERSIONS` | Compare with the latest PHP and Laravel releases from php.net and Packagist (`true`, cached 6 h, `STATUS_UPSTREAM_CACHE_TTL`). `false`, or unreachable: the newest version among the applications. |
 | `APP_TIMEZONE` | Timezone used to display dates (e.g. `Europe/Paris`). |

@@ -18,6 +18,8 @@ services:
       STATUS_TOKEN: ""
       # Optional: "Name|https://base-url|optional-token", comma-separated
       STATUS_APPS: ""
+      # Token protecting this dashboard's own /api/system-info (empty = disabled)
+      SYSTEM_INFO_TOKEN: ""
     command: ["frankenphp", "run"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/up"]

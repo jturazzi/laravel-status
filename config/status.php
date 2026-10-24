@@ -8,9 +8,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Comma-separated list of "Name|https://base-url|token" entries. The token
-    | is optional: STATUS_TOKEN (shared token) is used otherwise. These apps
-    | are read-only in the UI; apps can also be managed from the /apps page,
-    | where they are stored in the database.
+    | is optional: STATUS_TOKEN (shared token) is used otherwise. Applications
+    | are declared here only: there is no management page.
     |
     | STATUS_APPS="Billing|https://billing.example.com,CRM|https://crm.example.com|secret"
     |
