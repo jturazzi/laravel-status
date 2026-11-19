@@ -1,7 +1,7 @@
 # ============================================
 # Production image (no frontend assets: self-contained Blade view)
 # ============================================
-FROM serversideup/php:8.5-frankenphp-alpine
+FROM serversideup/php:8.6-frankenphp-alpine
 
 # PHP configuration
 ENV PHP_OPCACHE_ENABLE=1
